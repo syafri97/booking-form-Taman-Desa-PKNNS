@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Borang Tempahan</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Borang Tempahan</h1>
+        <form id="bookingForm">
+            <label for="customerName">Nama Penuh</label>
+            <input type="text" id="customerName" name="customerName" required>
+
+            <label for="customerIc">No. Kad Pengenalan (tanpa -)</label>
+            <input type="text" id="customerIc" name="customerIc" required>
+
+            <label for="customerAddress">Alamat</label>
+            <textarea id="customerAddress" name="customerAddress" rows="3" required></textarea>
+
+            <label for="customerPhone">No. Telefon</label>
+            <input type="text" id="customerPhone" name="customerPhone" required>
+
+            <label for="customerPosition">Jawatan</label>
+            <input type="text" id="customerPosition" name="customerPosition" required>
+
+            <label for="customerRace">Bangsa</label>
+            <input type="text" id="customerRace" name="customerRace" required>
+
+            <label for="customerEmail">Alamat Emel</label>
+            <input type="email" id="customerEmail" name="customerEmail" required>
+
+            <label>Tandatangan</label>
+            <canvas id="signaturePad"></canvas>
+            <button type="button" id="clearSignature">Padam Tandatangan</button>
+
+            <button type="submit">Hantar Borang</button>
+        </form>
+
+        <div id="successMessage" class="hidden">
+
+        </div>
+        <div id="errorMessage" class="hidden"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
