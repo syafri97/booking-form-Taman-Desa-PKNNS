@@ -215,6 +215,7 @@ app.post('/submitBooking', async (req, res) => {
             generatedFiles.push(outputPath);
         }
 
+        // Hantar emel ke admin
         await transporter.sendMail({
             from: 'Borang Tempahan <syafri.unicorn@gmail.com>',
             to: 'syafri.unicorn@gmail.com',
@@ -226,6 +227,7 @@ app.post('/submitBooking', async (req, res) => {
             }))
         });
 
+        // Hantar emel ke pelanggan
         await transporter.sendMail({
             from: 'Borang Tempahan <syafri.unicorn@gmail.com>',
             to: customerEmail,
@@ -237,7 +239,14 @@ app.post('/submitBooking', async (req, res) => {
             }))
         });
 
-        res.json({ message: 'Tempahan berjaya dihantar dan email telah dihantar!' });
+        // Padam semua fail PDF selepas emel berjaya dihantar
+        for (const filePath of generatedFiles) {
+            fs.unlink(filePath, (err) => {
+                if (err) console.error(`Gagal padam fail ${filePath}:`, err);
+            });
+        }
+
+        res.json({ message: 'Tempahan berjaya dihantar, emel dihantar dan PDF telah dipadam!' });
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({ error: 'Terjadi ralat semasa memproses tempahan.' });
