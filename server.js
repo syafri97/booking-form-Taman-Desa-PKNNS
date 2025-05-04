@@ -184,7 +184,7 @@ app.post('/submitBooking', async (req, res) => {
     ];
 
     const generatedFiles = [];
-    const outputDir = path.join(__dirname, 'pdfs');
+    const outputDir = '/tmp'; // Use /tmp for file storage on Render
 
     try {
         if (!fs.existsSync(outputDir)) {
@@ -221,6 +221,9 @@ app.post('/submitBooking', async (req, res) => {
             text: 'Borang tempahan baru telah dihantar. Sila semak lampiran untuk maklumat lanjut.',
             attachments: generatedFiles.map(filePath => ({ path: filePath }))
         });
+
+        // Clean up: delete files after sending email
+        generatedFiles.forEach(filePath => fs.unlinkSync(filePath));
 
         res.json({ message: 'Tempahan berjaya dihantar!' });
 
