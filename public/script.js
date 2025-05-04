@@ -94,7 +94,8 @@ form.addEventListener('submit', async (e) => {
   submitBtn.textContent = "Menghantar...";
 
   try {
-    const res = await fetch('/submitBooking', {
+    const res = await fetch('https://booking-form.onrender.com/submitBooking', {
+
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData)

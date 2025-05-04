@@ -1,10 +1,16 @@
 const express = require('express');
+const cors = require('cors'); // Tambah cors
 const nodemailer = require('nodemailer');
 const fs = require('fs');
 const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
 const path = require('path');
 
 const app = express();
+
+// Aktifkan CORS hanya untuk frontend tertentu
+app.use(cors({
+    origin: 'https://booking-form.onrender.com'
+}));
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
@@ -18,7 +24,7 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// Fungsi tambahan untuk membalut teks panjang ke beberapa baris
+// Fungsi membalut teks panjang ke beberapa baris
 function drawWrappedText(page, text, x, y, font, size, maxWidth, lineHeight = 12) {
     const words = text.split(' ');
     let line = '';
@@ -47,7 +53,7 @@ function drawWrappedText(page, text, x, y, font, size, maxWidth, lineHeight = 12
     });
 }
 
-// Fungsi untuk menjana PDF dengan posisi koordinat berbeza mengikut template
+// Fungsi untuk menjana PDF berdasarkan template
 async function generateFilledPdf(templatePath, data) {
     const pdfBytes = fs.readFileSync(templatePath);
     const pdfDoc = await PDFDocument.load(pdfBytes);
@@ -162,7 +168,7 @@ async function generateFilledPdf(templatePath, data) {
     return await pdfDoc.save();
 }
 
-// Endpoint untuk menerima dan proses borang tempahan
+// Endpoint POST untuk borang tempahan
 app.post('/submitBooking', async (req, res) => {
     const {
         customerName,
@@ -184,7 +190,7 @@ app.post('/submitBooking', async (req, res) => {
     ];
 
     const generatedFiles = [];
-    const outputDir = '/tmp'; // Use /tmp for file storage on Render
+    const outputDir = '/tmp';
 
     try {
         if (!fs.existsSync(outputDir)) {
@@ -222,7 +228,7 @@ app.post('/submitBooking', async (req, res) => {
             attachments: generatedFiles.map(filePath => ({ path: filePath }))
         });
 
-        // Clean up: delete files after sending email
+        // Padam fail sementara
         generatedFiles.forEach(filePath => fs.unlinkSync(filePath));
 
         res.json({ message: 'Tempahan berjaya dihantar!' });
