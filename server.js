@@ -184,8 +184,13 @@ app.post('/submitBooking', async (req, res) => {
     ];
 
     const generatedFiles = [];
+    const outputDir = path.join(__dirname, 'pdfs');
 
     try {
+        if (!fs.existsSync(outputDir)) {
+            fs.mkdirSync(outputDir, { recursive: true });
+        }
+
         for (const templatePath of requiredTemplates) {
             const filledPdfBytes = await generateFilledPdf(templatePath, {
                 customerName,
@@ -202,7 +207,10 @@ app.post('/submitBooking', async (req, res) => {
                 submissionDate3: submissionDate
             });
 
-            generatedFiles.push(filledPdfBytes);
+            const fileName = `booking_${path.basename(templatePath, '.pdf')}_${Date.now()}.pdf`;
+            const outputPath = path.join(outputDir, fileName);
+            fs.writeFileSync(outputPath, filledPdfBytes);
+            generatedFiles.push(outputPath);
         }
 
         // Hantar emel ke admin
@@ -210,34 +218,18 @@ app.post('/submitBooking', async (req, res) => {
             from: 'Borang Tempahan <syafri.unicorn@gmail.com>',
             to: 'syafri.unicorn@gmail.com',
             subject: 'Tempahan Baru Diterima',
-            text: `Tempahan baru dari ${customerName}`,
-            attachments: generatedFiles.map((file, index) => ({
-                filename: `file_${Date.now()}_${index + 1}.pdf`,
-                content: file
-            }))
+            text: 'Borang tempahan baru telah dihantar. Sila semak lampiran untuk maklumat lanjut.',
+            attachments: generatedFiles.map(filePath => ({ path: filePath }))
         });
 
-        // Hantar emel ke pelanggan
-        await transporter.sendMail({
-            from: 'Borang Tempahan <syafri.unicorn@gmail.com>',
-            to: customerEmail,
-            subject: `Pengesahan Tempahan - ${customerName}`,
-            text: `Terima kasih ${customerName} atas tempahan anda! PDF pengesahan dan dokumen PDPA dilampirkan.`,
-            attachments: generatedFiles.map((file, index) => ({
-                filename: `file_${Date.now()}_${index + 1}.pdf`,
-                content: file
-            }))
-        });
+        res.json({ message: 'Tempahan berjaya dihantar!' });
 
-        res.json({ message: 'Tempahan berjaya dihantar dan emel telah dihantar dengan PDF!' });
     } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ error: 'Terjadi ralat semasa memproses tempahan.' });
+        console.error(error);
+        res.status(500).json({ message: 'Ralat berlaku semasa proses tempahan.' });
     }
 });
 
-// Mulakan server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server berjalan di http://localhost:${PORT}`);
+app.listen(3000, () => {
+    console.log('Server berjalan pada port 3000');
 });
