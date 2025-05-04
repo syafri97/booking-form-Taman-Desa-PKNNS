@@ -128,7 +128,6 @@ async function generateFilledPdf(templatePath, data) {
     for (const key in positions) {
         if (positions[key] && data[key]) {
             if (key === 'customerAddress') {
-                // Wrap text khas untuk customerAddress
                 drawWrappedText(
                     firstPage,
                     data[key].toString(),
@@ -136,7 +135,7 @@ async function generateFilledPdf(templatePath, data) {
                     positions[key].y,
                     font,
                     positions[key].size,
-                    120 // Lebar maksimum teks dibenarkan (boleh ubah ikut PDF sebenar)
+                    120
                 );
             } else {
                 firstPage.drawText(data[key].toString(), {
@@ -163,12 +162,20 @@ async function generateFilledPdf(templatePath, data) {
     return await pdfDoc.save();
 }
 
-
 // Endpoint untuk menerima dan proses borang tempahan
 app.post('/submitBooking', async (req, res) => {
-    const { customerName, customerIc, customerAddress, customerPhone, customerPosition, customerRace, customerEmail, signatureData } = req.body;
-    const submissionDate = new Date().toLocaleDateString();
+    const {
+        customerName,
+        customerIc,
+        customerAddress,
+        customerPhone,
+        customerPosition,
+        customerRace,
+        customerEmail,
+        signatureData
+    } = req.body;
 
+    const submissionDate = new Date().toLocaleDateString();
     const requiredTemplates = [
         './templates/booking-template.pdf',
         './templates/pdpa1-template.pdf',
@@ -177,8 +184,13 @@ app.post('/submitBooking', async (req, res) => {
     ];
 
     const generatedFiles = [];
+    const outputDir = path.join(__dirname, 'pdfs');
 
     try {
+        if (!fs.existsSync(outputDir)) {
+            fs.mkdirSync(outputDir, { recursive: true });
+        }
+
         for (const templatePath of requiredTemplates) {
             const filledPdfBytes = await generateFilledPdf(templatePath, {
                 customerName,
@@ -197,7 +209,8 @@ app.post('/submitBooking', async (req, res) => {
                 submissionDate3: submissionDate
             });
 
-            const outputPath = `./pdfs/booking_${path.basename(templatePath, '.pdf')}_${Date.now()}.pdf`;
+            const fileName = `booking_${path.basename(templatePath, '.pdf')}_${Date.now()}.pdf`;
+            const outputPath = path.join(outputDir, fileName);
             fs.writeFileSync(outputPath, filledPdfBytes);
             generatedFiles.push(outputPath);
         }
@@ -207,7 +220,10 @@ app.post('/submitBooking', async (req, res) => {
             to: 'syafri.unicorn@gmail.com',
             subject: 'Tempahan Baru Diterima',
             text: `Tempahan baru dari ${customerName}`,
-            attachments: generatedFiles.map(file => ({ filename: path.basename(file), path: file }))
+            attachments: generatedFiles.map(file => ({
+                filename: path.basename(file),
+                path: file
+            }))
         });
 
         await transporter.sendMail({
@@ -215,7 +231,10 @@ app.post('/submitBooking', async (req, res) => {
             to: customerEmail,
             subject: `Pengesahan Tempahan - ${customerName}`,
             text: `Terima kasih ${customerName} atas tempahan anda! PDF pengesahan dan dokumen PDPA dilampirkan.`,
-            attachments: generatedFiles.map(file => ({ filename: path.basename(file), path: file }))
+            attachments: generatedFiles.map(file => ({
+                filename: path.basename(file),
+                path: file
+            }))
         });
 
         res.json({ message: 'Tempahan berjaya dihantar dan email telah dihantar!' });
