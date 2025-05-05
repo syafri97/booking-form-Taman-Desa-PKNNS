@@ -94,29 +94,26 @@ form.addEventListener('submit', async (e) => {
   submitBtn.textContent = "Menghantar...";
 
   try {
-    const res = await fetch('https://booking-form.onrender.com/submitBooking', {
-
+    const response = await fetch('http://localhost:3000/submitBooking', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData)
+      body: JSON.stringify(formData),
     });
 
-    const result = await res.json();
-
-    if (res.ok) {
-      form.style.display = 'none';
-      successMessage.textContent = result.message || 'Borang berjaya dihantar!';
+    if (response.ok) {
+      successMessage.textContent = "Borang berjaya dihantar!";
       successMessage.classList.remove('hidden');
+      errorMessage.classList.add('hidden');
+      form.reset();
+      ctx.clearRect(0, 0, signaturePad.width, signaturePad.height);
     } else {
-      errorMessage.textContent = result.error || 'Ralat penghantaran.';
-      errorMessage.classList.remove('hidden');
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Hantar Borang";
+      throw new Error("Gagal hantar borang.");
     }
-  } catch (err) {
-    errorMessage.textContent = 'Ralat sambungan: ' + err.message;
+} catch (err) {
+    console.error(err);
+    errorMessage.textContent = "Ralat semasa menghantar. Sila cuba semula.";
     errorMessage.classList.remove('hidden');
-    submitBtn.disabled = false;
-    submitBtn.textContent = "Hantar Borang";
-  }
+    successMessage.classList.add('hidden');
+}
+
 });
