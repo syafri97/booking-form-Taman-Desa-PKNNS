@@ -7,8 +7,16 @@ const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
 const path = require('path');
 
 const app = express();
-app.use(cors());
+
+// Konfigurasi CORS untuk membenarkan permintaan dari frontend di localhost:8080
+app.use(cors({
+    origin: 'http://localhost:8080',  // Sesuaikan dengan URL frontend anda
+}));
+
+// Untuk mengakses fail statik (HTML, CSS, JS) dari folder 'public'
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Untuk membaca request body dalam format JSON
 app.use(express.json());
 
 // Email transport setup
@@ -19,6 +27,12 @@ const transporter = nodemailer.createTransport({
         pass: process.env.EMAIL_PASS
     }
 });
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+    console.log(`Server berjalan pada port ${port}`);
+});
+
 
 function drawWrappedText(page, text, x, y, font, size, maxWidth, lineHeight = 12) {
     const words = text.split(' ');
@@ -211,9 +225,4 @@ app.post('/submitBooking', async (req, res) => {
         console.error('Error:', error);
         res.status(500).json({ message: 'Terjadi masalah. Sila cuba lagi.' });
     }
-});
-
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-    console.log(`Server berjalan pada port ${port}`);
 });
