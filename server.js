@@ -10,7 +10,7 @@ const app = express();
 
 // Konfigurasi CORS untuk membenarkan permintaan dari frontend di localhost:8080
 app.use(cors({
-    origin: 'http://localhost:8080',  // Sesuaikan dengan URL frontend anda
+    origin: ['http://localhost:8080', 'https://booking-form.onrender.com'] // tukar ikut URL frontend di Render
 }));
 
 // Untuk mengakses fail statik (HTML, CSS, JS) dari folder 'public'
@@ -28,12 +28,7 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-    console.log(`Server berjalan pada port ${port}`);
-});
-
-
+// Function to draw wrapped text for PDF generation
 function drawWrappedText(page, text, x, y, font, size, maxWidth, lineHeight = 12) {
     const words = text.split(' ');
     let line = '';
@@ -62,6 +57,7 @@ function drawWrappedText(page, text, x, y, font, size, maxWidth, lineHeight = 12
     });
 }
 
+// Function to generate filled PDF based on template
 async function generateFilledPdf(templatePath, data) {
     const pdfBytes = fs.readFileSync(templatePath);
     const pdfDoc = await PDFDocument.load(pdfBytes);
@@ -69,9 +65,8 @@ async function generateFilledPdf(templatePath, data) {
     const firstPage = pages[0];
     const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    const mm = 2.83;
-    const pageHeight = firstPage.getHeight();
-    const y = (mmY) => pageHeight - (mmY * mm);
+    const mm = 2.83; // Conversion factor for millimeters to PDF units
+   
 
     let positions;
     let signaturePosition;
@@ -128,6 +123,7 @@ async function generateFilledPdf(templatePath, data) {
             signaturePosition = { x: 65 * mm, y: 25 * mm };
     }
 
+    // Populate the PDF fields with data
     for (const key in positions) {
         if (positions[key] && data[key]) {
             if (key === 'customerAddress') {
@@ -144,6 +140,7 @@ async function generateFilledPdf(templatePath, data) {
         }
     }
 
+    // Add signature image if provided
     if (data.signatureData) {
         const signatureImage = await pdfDoc.embedPng(data.signatureData);
         firstPage.drawImage(signatureImage, {
@@ -157,6 +154,7 @@ async function generateFilledPdf(templatePath, data) {
     return await pdfDoc.save();
 }
 
+// Route to handle booking form submission and generate PDF
 app.post('/submitBooking', async (req, res) => {
     const {
         customerName,
@@ -178,7 +176,7 @@ app.post('/submitBooking', async (req, res) => {
     ];
 
     const generatedFiles = [];
-    const outputDir = '/tmp';
+    const outputDir = path.join(__dirname, 'temp'); // Ensure temp folder exists
 
     try {
         if (!fs.existsSync(outputDir)) {
@@ -188,14 +186,12 @@ app.post('/submitBooking', async (req, res) => {
         for (const templatePath of requiredTemplates) {
             const filledPdfBytes = await generateFilledPdf(templatePath, {
                 customerName,
-                customerName1: customerName,
-                customerName2: customerName,
                 customerIc,
                 customerAddress,
                 customerPhone,
                 customerPosition,
-                customerEmail,
                 customerRace,
+                customerEmail,
                 signatureData,
                 submissionDate,
                 submissionDate1: submissionDate,
@@ -209,6 +205,7 @@ app.post('/submitBooking', async (req, res) => {
             generatedFiles.push(outputPath);
         }
 
+        // Send email with generated files
         await transporter.sendMail({
             from: `Borang Tempahan <${process.env.EMAIL_USER}>`,
             to: process.env.EMAIL_USER,
@@ -225,4 +222,10 @@ app.post('/submitBooking', async (req, res) => {
         console.error('Error:', error);
         res.status(500).json({ message: 'Terjadi masalah. Sila cuba lagi.' });
     }
+});
+
+// Start the server
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+    console.log(`Server berjalan pada port ${port}`);
 });

@@ -1,3 +1,4 @@
+
 const form = document.getElementById('bookingForm');
 const signaturePad = document.getElementById('signaturePad');
 const clearBtn = document.getElementById('clearSignature');
@@ -94,7 +95,7 @@ form.addEventListener('submit', async (e) => {
   submitBtn.textContent = "Menghantar...";
 
   try {
-    const response = await fetch('http://localhost:3000/submitBooking', {
+    const response = await fetch('https://namaprojek-backend.onrender.com/submitBooking', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData),
