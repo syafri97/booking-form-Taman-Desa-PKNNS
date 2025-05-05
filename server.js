@@ -198,6 +198,8 @@ app.post('/submitBooking', async (req, res) => {
         for (const templatePath of requiredTemplates) {
             const filledPdfBytes = await generateFilledPdf(templatePath, {
                 customerName,
+                customerName1: customerName,
+                customerName2: customerName,
                 customerIc,
                 customerAddress,
                 customerPhone,
