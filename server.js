@@ -5,21 +5,37 @@ const nodemailer = require('nodemailer');
 const fs = require('fs');
 const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
 const path = require('path');
+const open = require('open').default;
 
 const app = express();
 
-// Konfigurasi CORS untuk membenarkan permintaan dari frontend di localhost:8080
+// CORS middleware betul, letak paling atas
 app.use(cors({
-    origin: ['http://localhost:8080', 'https://booking-form.onrender.com'] // tukar ikut URL frontend di Render
+    origin: [ 'https://booking-form-taman-desa-pknns.onrender.com'],
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    credentials: false // kalau tak guna cookies, boleh false
 }));
 
-// Untuk mengakses fail statik (HTML, CSS, JS) dari folder 'public'
+// Middleware untuk tambah header CORS tambahan jika perlu
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*"); // hanya untuk ujian
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    next();
+});
+
+// Handle preflight OPTIONS request dengan jawapan manual (optional tapi bagus untuk debugging)
+app.options('/submitBooking', (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    res.header("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.sendStatus(200);
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json({ limit: '10mb' }));
 
-// Untuk membaca request body dalam format JSON
-app.use(express.json());
-
-// Email transport setup
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -28,7 +44,6 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// Function to draw wrapped text for PDF generation
 function drawWrappedText(page, text, x, y, font, size, maxWidth, lineHeight = 12) {
     const words = text.split(' ');
     let line = '';
@@ -57,7 +72,6 @@ function drawWrappedText(page, text, x, y, font, size, maxWidth, lineHeight = 12
     });
 }
 
-// Function to generate filled PDF based on template
 async function generateFilledPdf(templatePath, data) {
     const pdfBytes = fs.readFileSync(templatePath);
     const pdfDoc = await PDFDocument.load(pdfBytes);
@@ -65,9 +79,7 @@ async function generateFilledPdf(templatePath, data) {
     const firstPage = pages[0];
     const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    const mm = 2.83; // Conversion factor for millimeters to PDF units
-   
-
+    const mm = 2.83;
     let positions;
     let signaturePosition;
 
@@ -123,7 +135,6 @@ async function generateFilledPdf(templatePath, data) {
             signaturePosition = { x: 65 * mm, y: 25 * mm };
     }
 
-    // Populate the PDF fields with data
     for (const key in positions) {
         if (positions[key] && data[key]) {
             if (key === 'customerAddress') {
@@ -140,8 +151,7 @@ async function generateFilledPdf(templatePath, data) {
         }
     }
 
-    // Add signature image if provided
-    if (data.signatureData) {
+    if (data.signatureData && data.signatureData.startsWith('data:image')) {
         const signatureImage = await pdfDoc.embedPng(data.signatureData);
         firstPage.drawImage(signatureImage, {
             x: signaturePosition.x,
@@ -154,7 +164,6 @@ async function generateFilledPdf(templatePath, data) {
     return await pdfDoc.save();
 }
 
-// Route to handle booking form submission and generate PDF
 app.post('/submitBooking', async (req, res) => {
     const {
         customerName,
@@ -176,7 +185,7 @@ app.post('/submitBooking', async (req, res) => {
     ];
 
     const generatedFiles = [];
-    const outputDir = path.join(__dirname, 'temp'); // Ensure temp folder exists
+    const outputDir = path.join(__dirname, 'temp');
 
     try {
         if (!fs.existsSync(outputDir)) {
@@ -205,7 +214,6 @@ app.post('/submitBooking', async (req, res) => {
             generatedFiles.push(outputPath);
         }
 
-        // Send email with generated files
         await transporter.sendMail({
             from: `Borang Tempahan <${process.env.EMAIL_USER}>`,
             to: process.env.EMAIL_USER,
@@ -219,13 +227,13 @@ app.post('/submitBooking', async (req, res) => {
 
         res.status(200).json({ message: 'Borang tempahan berjaya dihantar.' });
     } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ message: 'Terjadi masalah. Sila cuba lagi.' });
+        res.status(500).json({ message: 'Terjadi masalah. Sila cuba lagi.', error: error.message });
     }
 });
 
-// Start the server
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-    console.log(`Server berjalan pada port ${port}`);
+    const link = `http://localhost:${port}`;
+    console.log(`Server berjalan pada: ${link}`);
+    open(link);
 });
